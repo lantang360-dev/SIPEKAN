@@ -1,0 +1,148 @@
+// SIPEKAN - Prisma Schema
+// ============================================
+// FOR LOCAL DEVELOPMENT (SQLite):
+//   provider = "sqlite"
+//   DATABASE_URL = "file:./db/custom.db"
+//
+// FOR PRODUCTION / VERCEL (PostgreSQL - Neon):
+//   provider = "postgresql"
+//   DATABASE_URL = "postgresql://user:pass@host/db?sslmode=require"
+// ============================================
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+// ============================================
+// MODEL: PENDAFTARAN (Registration)
+// ============================================
+model Registration {
+  id                  String   @id @default(cuid())
+  nomorRegistrasi      String   @unique
+  tanggalDaftar        DateTime @default(now())
+  tanggalBesukan       DateTime
+  status               String   @default("menunggu") // menunggu, diverifikasi, ditolak, selesai
+  catatanPetugas       String?
+  petugasVerifikator   String?
+
+  // Data Pengunjung
+  namaLengkap         String
+  nik                 String
+  tempatLahir         String
+  tanggalLahir        String
+  jenisKelamin        String
+  pekerjaan           String
+  alamat              String
+  nomorHP             String
+  email               String?
+
+  // Data Warga Binaan
+  namaWargaBinaan     String
+  nomorRegistrasiWB    String?
+  hubungan            String
+  tujuan              String
+  jumlahPengunjung    String
+
+  // Dokumen
+  dokKTP              Boolean  @default(false)
+  dokKK               Boolean  @default(false)
+  dokSuratDesa        Boolean  @default(false)
+  dokIzinKhusus       Boolean  @default(false)
+  fotoKTPPath         String?
+  fotoKKPath          String?
+  fotoSuratDesaPath   String?
+  fotoIzinKhususPath  String?
+  fotoPengunjungPath  String?
+
+  catatan             String?
+  createdAt           DateTime @default(now())
+  updatedAt           DateTime @updatedAt
+
+  @@map("registrations")
+}
+
+// ============================================
+// MODEL: ANTRIAN (Queue Entry)
+// ============================================
+model QueueEntry {
+  id            String   @id @default(cuid())
+  nomorAntrian  String                   // e.g. "B-0042", "P-0015"
+  serviceType   String                   // "besukan_tatap_muka" or "penitipan_barang"
+  status        String   @default("menunggu") // menunggu, dipanggil, dilayani, selesai, dilewati
+  counterId     String?
+  calledAt      DateTime?
+  servedAt      DateTime?
+  completedAt   DateTime?
+  tanggal       DateTime @default(now()) // tanggal antrian
+
+  // Relation
+  counter       Counter? @relation(fields: [counterId], references: [id])
+
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  @@index([serviceType, tanggal])
+  @@index([status, tanggal])
+  @@index([nomorAntrian])
+  @@map("queue_entries")
+}
+
+// ============================================
+// MODEL: COUNTER (Service Counter / Loket)
+// ============================================
+model Counter {
+  id            String   @id @default(cuid())
+  name          String                   // e.g. "Loket 1", "Loket 2"
+  serviceType   String?                  // null = semua, atau specific service
+  isActive      Boolean  @default(true)
+  isOnline      Boolean  @default(false) // apakah sedang aktif/dioperasikan
+  lastCalledAt  DateTime?
+  order         Int      @default(0)
+
+  // Relation
+  queueEntries  QueueEntry[]
+
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  @@map("counters")
+}
+
+// ============================================
+// MODEL: APP SETTING
+// ============================================
+model AppSetting {
+  id    String @id @default(cuid())
+  key   String @unique             // unique setting key
+  value String                     // JSON string for complex values
+  label String                     // human-readable label
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@map("app_settings")
+}
+
+// ============================================
+// MODEL: DAILY QUEUE TRACKER
+// ============================================
+model DailyQueue {
+  id            String   @id @default(cuid())
+  tanggal       DateTime                 // date (no time)
+  serviceType   String                   // "besukan_tatap_muka" or "penitipan_barang"
+  lastNumber    Int      @default(0)     // last issued number
+  prefix        String                   // "B" or "P"
+  totalCalled   Int      @default(0)     // total called today
+  totalServed   Int      @default(0)     // total served today
+
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  @@unique([tanggal, serviceType])
+  @@map("daily_queues")
+}

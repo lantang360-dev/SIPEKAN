@@ -1,7 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { db } from '@/lib/db'
 import { createSessionCookie } from '@/lib/session'
-import { verifyPassword } from '@/lib/password'
 
 export async function POST(request: NextRequest) {
   try {
@@ -26,8 +25,16 @@ export async function POST(request: NextRequest) {
       )
     }
 
-    // Verify password (supports both hashed and plain-text)
-    const isPasswordValid = await verifyPassword(password, petugas.password)
+    // Compare password (support both bcrypt hash and plain text)
+    let isPasswordValid = false
+    if (petugas.password.startsWith('$2')) {
+      // bcrypt hash - need to verify
+      const bcrypt = require('bcryptjs')
+      isPasswordValid = await bcrypt.compare(password, petugas.password)
+    } else {
+      // plain text
+      isPasswordValid = password === petugas.password
+    }
 
     if (!isPasswordValid) {
       return NextResponse.json(
@@ -46,10 +53,10 @@ export async function POST(request: NextRequest) {
 
     response.headers.set('Set-Cookie', createSessionCookie(petugas.id))
     return response
-  } catch (error) {
+  } catch (error: any) {
     console.error('Login error:', error)
     return NextResponse.json(
-      { success: false, message: 'Terjadi kesalahan server' },
+      { success: false, message: 'Error: ' + (error.message || String(error)) },
       { status: 500 }
     )
   }

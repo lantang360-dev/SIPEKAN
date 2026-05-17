@@ -4,9 +4,11 @@ import { createClient } from "@libsql/client";
 
 function createPrismaClient() {
   const databaseUrl = process.env.DATABASE_URL || "";
+
   if (databaseUrl.startsWith("file:")) {
     return new PrismaClient();
   }
+
   const libsql = createClient({ url: databaseUrl });
   const adapter = new PrismaLibSQL(libsql);
   return new PrismaClient({ adapter });

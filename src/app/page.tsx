@@ -1,23 +1,19 @@
-export const dynamic = 'force-dynamic'
-export const revalidate = 0
+'use client'
 
 export default function Home() {
   return (
     <iframe
-      src="/index.html"
+      src="/upload/index.html"
       style={{
-        width: '100%',
+        width: '100vw',
         height: '100vh',
         border: 'none',
         margin: 0,
         padding: 0,
-        position: 'fixed',
-        top: 0,
-        left: 0,
-        right: 0,
+        overflow: 'hidden',
+        display: 'block',
       }}
-      title="SIPEKAN"
-      allow="autoplay"
+      title="SIPEKAN - Sistem Informasi Pelayanan Besukan Lapas"
     />
   )
 }

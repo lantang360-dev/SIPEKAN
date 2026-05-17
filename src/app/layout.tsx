@@ -14,28 +14,24 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: process.env.NEXT_PUBLIC_APP_NAME || "SIPEKAN",
-  description:
-    process.env.NEXT_PUBLIC_APP_SUBTITLE ||
-    "Sistem Informasi Pelayanan Besukan Lapas",
-  keywords: [
-    "SIPEKAN",
-    "Lapas",
-    "Besukan",
-    "Antrian",
-    "Pelayanan Publik",
-    "Kunjungan",
-  ],
-  authors: [{ name: "SIPEKAN Team" }],
+  title: "Z.ai Code Scaffold - AI-Powered Development",
+  description: "Modern Next.js scaffold optimized for AI-powered development with Z.ai. Built with TypeScript, Tailwind CSS, and shadcn/ui.",
+  keywords: ["Z.ai", "Next.js", "TypeScript", "Tailwind CSS", "shadcn/ui", "AI development", "React"],
+  authors: [{ name: "Z.ai Team" }],
   icons: {
-    icon: "/logo.svg",
+    icon: "https://z-cdn.chatglm.cn/z-ai/static/logo.svg",
   },
   openGraph: {
-    title: process.env.NEXT_PUBLIC_APP_NAME || "SIPEKAN",
-    description:
-      process.env.NEXT_PUBLIC_APP_SUBTITLE ||
-      "Sistem Informasi Pelayanan Besukan Lapas",
+    title: "Z.ai Code Scaffold",
+    description: "AI-powered development with modern React stack",
+    url: "https://chat.z.ai",
+    siteName: "Z.ai",
     type: "website",
+  },
+  twitter: {
+    card: "summary_large_image",
+    title: "Z.ai Code Scaffold",
+    description: "AI-powered development with modern React stack",
   },
 };
 
@@ -45,7 +41,7 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="id" suppressHydrationWarning>
+    <html lang="en" suppressHydrationWarning>
       <body
         className={`${geistSans.variable} ${geistMono.variable} antialiased bg-background text-foreground`}
       >

@@ -1,14 +1,3 @@
-// SIPEKAN - Prisma Schema
-// ============================================
-// FOR LOCAL DEVELOPMENT (SQLite):
-//   provider = "sqlite"
-//   DATABASE_URL = "file:./db/custom.db"
-//
-// FOR PRODUCTION / VERCEL (PostgreSQL - Neon):
-//   provider = "postgresql"
-//   DATABASE_URL = "postgresql://user:pass@host/db?sslmode=require"
-// ============================================
-
 generator client {
   provider = "prisma-client-js"
 }
@@ -19,130 +8,239 @@ datasource db {
 }
 
 // ============================================
-// MODEL: PENDAFTARAN (Registration)
+// PETUGAS (Staff/Officer)
+// ============================================
+model Petugas {
+  id        String   @id @default(cuid())
+  username  String   @unique
+  password  String
+  nama      String
+  nip       String   @unique
+  jabatan   String
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  verifications     Verification[]
+  callHistory       QueueCall[]
+  verifiedRegistrations Registration[] @relation("RegistrationVerifier")
+
+  @@map("petugas")
+}
+
+// ============================================
+// LAYANAN (Service Types)
+// ============================================
+model Layanan {
+  id          String @id @default(cuid())
+  kode        String @unique
+  nama        String
+  deskripsi   String
+  prefix      String
+  estimasi    String
+  isActive    Boolean @default(true)
+  urutan      Int      @default(0)
+
+  counters     Counter[]
+  registrations Registration[]
+  queueTickets QueueTicket[]
+
+  @@map("layanan")
+}
+
+// ============================================
+// COUNTER (Service Counter/Loket)
+// ============================================
+model Counter {
+  id          String   @id @default(cuid())
+  nomor       Int
+  nama        String
+  isActive    Boolean @default(true)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  layananId   String
+  layanan     Layanan @relation(fields: [layananId], references: [id])
+  calls       QueueCall[]
+  dailySessions DailySession[]
+
+  @@unique([nomor])
+  @@map("counter")
+}
+
+// ============================================
+// PENDAFTARAN (Visitor Registration)
 // ============================================
 model Registration {
   id                  String   @id @default(cuid())
-  nomorRegistrasi      String   @unique
-  tanggalDaftar        DateTime @default(now())
-  tanggalBesukan       DateTime
-  status               String   @default("menunggu") // menunggu, diverifikasi, ditolak, selesai
-  catatanPetugas       String?
-  petugasVerifikator   String?
+  nomorRegistrasi     String   @unique
+  tanggalDaftar       DateTime @default(now())
+  tanggalBesukan      DateTime
+  status              String   @default("menunggu")
+  catatanPetugas      String?
 
-  // Data Pengunjung
   namaLengkap         String
   nik                 String
   tempatLahir         String
-  tanggalLahir        String
+  tanggalLahir        DateTime
   jenisKelamin        String
   pekerjaan           String
   alamat              String
   nomorHP             String
   email               String?
 
-  // Data Warga Binaan
   namaWargaBinaan     String
-  nomorRegistrasiWB    String?
+  nomorRegistrasiWB   String?
   hubungan            String
   tujuan              String
-  jumlahPengunjung    String
+  jumlahPengunjung    Int
+  catatan             String?
 
-  // Dokumen
   dokKTP              Boolean  @default(false)
   dokKK               Boolean  @default(false)
   dokSuratDesa        Boolean  @default(false)
   dokIzinKhusus       Boolean  @default(false)
-  fotoKTPPath         String?
-  fotoKKPath          String?
-  fotoSuratDesaPath   String?
-  fotoIzinKhususPath  String?
-  fotoPengunjungPath  String?
 
-  catatan             String?
   createdAt           DateTime @default(now())
   updatedAt           DateTime @updatedAt
 
-  @@map("registrations")
+  layananId           String
+  layanan             Layanan @relation(fields: [layananId], references: [id])
+
+  verifiedBy          String?
+  verifiedByPetugas   Petugas? @relation("RegistrationVerifier", fields: [verifiedBy], references: [id])
+  verifications       Verification[]
+  notifikasi          Notifikasi[]
+
+  @@index([status])
+  @@index([namaLengkap])
+  @@index([nomorRegistrasi])
+  @@index([nik])
+  @@index([namaWargaBinaan])
+  @@index([tanggalBesukan])
+  @@map("registration")
 }
 
 // ============================================
-// MODEL: ANTRIAN (Queue Entry)
+// VERIFICATION (Audit trail)
 // ============================================
-model QueueEntry {
+model Verification {
   id            String   @id @default(cuid())
-  nomorAntrian  String                   // e.g. "B-0042", "P-0015"
-  serviceType   String                   // "besukan_tatap_muka" or "penitipan_barang"
-  status        String   @default("menunggu") // menunggu, dipanggil, dilayani, selesai, dilewati
-  counterId     String?
-  calledAt      DateTime?
-  servedAt      DateTime?
-  completedAt   DateTime?
-  tanggal       DateTime @default(now()) // tanggal antrian
-
-  // Relation
-  counter       Counter? @relation(fields: [counterId], references: [id])
-
+  registrationId String
+  registration  Registration @relation(fields: [registrationId], references: [id], onDelete: Cascade)
+  petugasId     String
+  petugas       Petugas @relation(fields: [petugasId], references: [id])
+  action        String
+  catatan       String?
   createdAt     DateTime @default(now())
-  updatedAt     DateTime @updatedAt
 
-  @@index([serviceType, tanggal])
-  @@index([status, tanggal])
-  @@index([nomorAntrian])
-  @@map("queue_entries")
+  @@index([registrationId])
+  @@index([petugasId])
+  @@map("verification")
 }
 
 // ============================================
-// MODEL: COUNTER (Service Counter / Loket)
+// QUEUE TICKET
 // ============================================
-model Counter {
-  id            String   @id @default(cuid())
-  name          String                   // e.g. "Loket 1", "Loket 2"
-  serviceType   String?                  // null = semua, atau specific service
-  isActive      Boolean  @default(true)
-  isOnline      Boolean  @default(false) // apakah sedang aktif/dioperasikan
-  lastCalledAt  DateTime?
-  order         Int      @default(0)
+model QueueTicket {
+  id              String   @id @default(cuid())
+  nomorAntrian    String
+  tanggal         DateTime @default(now())
+  waktuAmbil      DateTime @default(now())
+  status          String   @default("menunggu")
 
-  // Relation
-  queueEntries  QueueEntry[]
+  layananId       String
+  layanan         Layanan @relation(fields: [layananId], references: [id])
 
-  createdAt     DateTime @default(now())
-  updatedAt     DateTime @updatedAt
+  callId          String?  @unique
+  calledBy        QueueCall? @relation(fields: [callId], references: [id])
 
-  @@map("counters")
+  dipanggilPada   DateTime?
+  selesaiPada     DateTime?
+  dipanggilDi     String?
+
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  @@unique([nomorAntrian, tanggal])
+  @@index([status])
+  @@index([layananId])
+  @@index([tanggal])
+  @@map("queue_ticket")
 }
 
 // ============================================
-// MODEL: APP SETTING
+// QUEUE CALL (Counter Call History)
 // ============================================
-model AppSetting {
-  id    String @id @default(cuid())
-  key   String @unique             // unique setting key
-  value String                     // JSON string for complex values
-  label String                     // human-readable label
+model QueueCall {
+  id              String   @id @default(cuid())
+  nomorAntrian    String
+  waktu           DateTime @default(now())
 
+  counterId       String
+  counter         Counter @relation(fields: [counterId], references: [id])
+
+  petugasId       String
+  petugas         Petugas @relation(fields: [petugasId], references: [id])
+
+  ticket          QueueTicket?
+
+  @@index([counterId])
+  @@index([petugasId])
+  @@index([waktu])
+  @@map("queue_call")
+}
+
+// ============================================
+// DAILY SESSION
+// ============================================
+model DailySession {
+  id              String   @id @default(cuid())
+  tanggal         DateTime
+  counterId       String
+  counter         Counter @relation(fields: [counterId], references: [id])
+  currentNumber   Int      @default(0)
+  totalCalled     Int      @default(0)
+  totalMenunggu   Int      @default(0)
+
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  @@unique([tanggal, counterId])
+  @@index([tanggal])
+  @@map("daily_session")
+}
+
+// ============================================
+// NOTIFIKASI WA (WhatsApp Notification Log)
+// ============================================
+model Notifikasi {
+  id              String   @id @default(cuid())
+  registrationId  String
+  registration    Registration @relation(fields: [registrationId], references: [id], onDelete: Cascade)
+  nomorHP         String
+  tipe            String
+  statusKirim     String   @default("pending")
+  pesan           String
+  providerResponse String?
+  sentAt          DateTime @default(now())
+  createdAt       DateTime @default(now())
+
+  @@index([registrationId])
+  @@index([statusKirim])
+  @@index([nomorHP])
+  @@map("notifikasi")
+}
+
+// ============================================
+// PENGATURAN (System Settings)
+// ============================================
+model Pengaturan {
+  id        String @id @default(cuid())
+  key       String @unique
+  value     String
+  label     String
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
-  @@map("app_settings")
-}
-
-// ============================================
-// MODEL: DAILY QUEUE TRACKER
-// ============================================
-model DailyQueue {
-  id            String   @id @default(cuid())
-  tanggal       DateTime                 // date (no time)
-  serviceType   String                   // "besukan_tatap_muka" or "penitipan_barang"
-  lastNumber    Int      @default(0)     // last issued number
-  prefix        String                   // "B" or "P"
-  totalCalled   Int      @default(0)     // total called today
-  totalServed   Int      @default(0)     // total served today
-
-  createdAt     DateTime @default(now())
-  updatedAt     DateTime @updatedAt
-
-  @@unique([tanggal, serviceType])
-  @@map("daily_queues")
+  @@map("pengaturan")
 }

@@ -1,14 +1,12 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { db } from '@/lib/db'
 
-// GET /api/pengaturan - Get all settings
 export async function GET() {
   try {
     const settings = await db.pengaturan.findMany({
       orderBy: { key: 'asc' },
     })
 
-    // Convert to key-value object
     const settingsMap: Record<string, string> = {}
     settings.forEach((s) => {
       settingsMap[s.key] = s.value
@@ -27,7 +25,6 @@ export async function GET() {
   }
 }
 
-// PUT /api/pengaturan - Update settings (bulk)
 export async function PUT(request: NextRequest) {
   try {
     const body = await request.json()
@@ -48,7 +45,6 @@ export async function PUT(request: NextRequest) {
       wa_app_name: 'Nama Aplikasi',
     }
 
-    // Upsert each setting
     const results = await Promise.all(
       Object.entries(settings).map(async ([key, value]) => {
         return db.pengaturan.upsert({
@@ -77,7 +73,6 @@ export async function PUT(request: NextRequest) {
   }
 }
 
-// POST /api/pengaturan - Get notification history for a registration
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json()

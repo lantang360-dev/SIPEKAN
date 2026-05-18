@@ -21,7 +21,6 @@ export async function GET(request: NextRequest) {
     const dayStart = getStartOfDay(targetDate)
     const dayEnd = getEndOfDay(targetDate)
 
-    // 1. Registration counts by status
     const registrationStats = await db.registration.groupBy({
       by: ['status'],
       where: {
@@ -44,7 +43,6 @@ export async function GET(request: NextRequest) {
       0
     )
 
-    // 2. Queue ticket counts by status
     const ticketStats = await db.queueTicket.groupBy({
       by: ['status'],
       where: {
@@ -67,7 +65,6 @@ export async function GET(request: NextRequest) {
       0
     )
 
-    // 3. Group by layanan (tickets)
     const ticketByLayanan = await db.queueTicket.groupBy({
       by: ['layananId'],
       where: {
@@ -96,7 +93,6 @@ export async function GET(request: NextRequest) {
       total: t._count.id,
     }))
 
-    // 4. Hourly breakdown of queue calls
     const allCallsToday = await db.queueCall.findMany({
       where: {
         waktu: {
@@ -112,21 +108,17 @@ export async function GET(request: NextRequest) {
 
     const hourlyBreakdown: { hour: number; count: number }[] = []
     for (let h = 7; h <= 16; h++) {
-      // Operating hours 07:00 - 16:00
       const count = allCallsToday.filter((call) => {
         const callHour = call.waktu.getHours()
         return callHour === h
       }).length
 
-      if (count > 0 || h >= 7 && h <= 16) {
-        hourlyBreakdown.push({
-          hour: h,
-          count,
-        })
-      }
+      hourlyBreakdown.push({
+        hour: h,
+        count,
+      })
     }
 
-    // 5. Per-counter stats
     const counterStats = await db.counter.findMany({
       where: { isActive: true },
       include: {

@@ -94,19 +94,10 @@ export async function POST(request: NextRequest) {
     const body = await request.json()
 
     const requiredFields = [
-      'namaLengkap',
-      'nik',
-      'tempatLahir',
-      'tanggalLahir',
-      'jenisKelamin',
-      'pekerjaan',
-      'alamat',
-      'nomorHP',
-      'namaWargaBinaan',
-      'hubungan',
-      'tujuan',
-      'jumlahPengunjung',
-      'layananId',
+      'namaLengkap', 'nik', 'tempatLahir', 'tanggalLahir',
+      'jenisKelamin', 'pekerjaan', 'alamat', 'nomorHP',
+      'namaWargaBinaan', 'hubungan', 'tujuan',
+      'jumlahPengunjung', 'layananId',
     ]
 
     for (const field of requiredFields) {
@@ -118,7 +109,6 @@ export async function POST(request: NextRequest) {
       }
     }
 
-    // Check layanan exists
     const layanan = await db.layanan.findUnique({
       where: { id: body.layananId },
     })
@@ -130,7 +120,6 @@ export async function POST(request: NextRequest) {
       )
     }
 
-    // Auto-generate nomor registrasi (simple format: B-NNNN)
     const prefix = 'B-'
 
     const lastRegistration = await db.registration.findFirst({
@@ -151,7 +140,6 @@ export async function POST(request: NextRequest) {
 
     const nomorRegistrasi = `${prefix}${String(nextNumber).padStart(4, '0')}`
 
-    // Check tanggalBesukan - default to today if not provided
     const tanggalBesukan = body.tanggalBesukan
       ? new Date(body.tanggalBesukan)
       : new Date()

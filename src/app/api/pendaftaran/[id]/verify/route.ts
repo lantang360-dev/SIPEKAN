@@ -25,7 +25,6 @@ export async function PATCH(
       )
     }
 
-    // Check petugas exists
     const petugas = await db.petugas.findUnique({
       where: { id: petugasId },
     })
@@ -37,7 +36,6 @@ export async function PATCH(
       )
     }
 
-    // Find registration
     const registration = await db.registration.findUnique({
       where: { id },
     })
@@ -56,7 +54,6 @@ export async function PATCH(
       )
     }
 
-    // Update registration and create verification in transaction
     const updatedRegistration = await db.$transaction(async (tx) => {
       const updated = await tx.registration.update({
         where: { id },
@@ -96,7 +93,6 @@ export async function PATCH(
       return updated
     })
 
-    // Send WhatsApp notification (non-blocking)
     let notifikasiResult = null
     try {
       notifikasiResult = await sendWhatsAppNotification({

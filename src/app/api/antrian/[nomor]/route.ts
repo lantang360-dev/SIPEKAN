@@ -68,7 +68,6 @@ export async function GET(
       )
     }
 
-    // Calculate position in queue (only if status is menunggu)
     let posisiAntrian = 0
     if (ticket.status === 'menunggu') {
       posisiAntrian = await db.queueTicket.count({

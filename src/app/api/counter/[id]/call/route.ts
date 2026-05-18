@@ -29,7 +29,6 @@ export async function POST(
       )
     }
 
-    // Find counter with layanan
     const counter = await db.counter.findUnique({
       where: { id: counterId },
       include: {
@@ -51,7 +50,6 @@ export async function POST(
       )
     }
 
-    // Check petugas
     const petugas = await db.petugas.findUnique({
       where: { id: petugasId },
     })
@@ -68,7 +66,6 @@ export async function POST(
     const previousNumber = counter.layanan.prefix + '-0000'
 
     const result = await db.$transaction(async (tx) => {
-      // Get or create daily session
       let session = await tx.dailySession.findUnique({
         where: {
           tanggal_counterId: {
@@ -93,7 +90,6 @@ export async function POST(
           ? `${counter.layanan.prefix}-${String(session.currentNumber).padStart(4, '0')}`
           : previousNumber
 
-      // Increment current number
       const newNumber = session.currentNumber + 1
       const nomorAntrian = `${counter.layanan.prefix}-${String(newNumber).padStart(4, '0')}`
 
@@ -105,7 +101,6 @@ export async function POST(
         },
       })
 
-      // Create queue call
       const queueCall = await tx.queueCall.create({
         data: {
           nomorAntrian,
@@ -130,18 +125,14 @@ export async function POST(
         },
       })
 
-      // Find matching waiting ticket and update it
-      const todayStartForTicket = getStartOfDay()
-      const todayEndForTicket = getEndOfDay()
-
       const waitingTicket = await tx.queueTicket.findFirst({
         where: {
           layananId: counter.layananId,
           nomorAntrian,
           status: 'menunggu',
           tanggal: {
-            gte: todayStartForTicket,
-            lte: todayEndForTicket,
+            gte: todayStart,
+            lte: todayEnd,
           },
         },
       })

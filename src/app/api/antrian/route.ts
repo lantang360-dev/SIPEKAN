@@ -25,7 +25,6 @@ export async function POST(request: NextRequest) {
       )
     }
 
-    // Find layanan
     const layanan = await db.layanan.findUnique({
       where: { id: layananId, isActive: true },
     })
@@ -40,7 +39,6 @@ export async function POST(request: NextRequest) {
     const todayStart = getStartOfDay()
     const todayEnd = getEndOfDay()
 
-    // Count today's tickets for this layanan to get next number
     const todayTicketCount = await db.queueTicket.count({
       where: {
         layananId,
@@ -54,7 +52,6 @@ export async function POST(request: NextRequest) {
     const nextNumber = todayTicketCount + 1
     const nomorAntrian = `${layanan.prefix}-${String(nextNumber).padStart(4, '0')}`
 
-    // Create queue ticket
     const ticket = await db.queueTicket.create({
       data: {
         nomorAntrian,
@@ -75,7 +72,6 @@ export async function POST(request: NextRequest) {
       },
     })
 
-    // Count position in queue
     const position = await db.queueTicket.count({
       where: {
         layananId,

@@ -17,6 +17,7 @@ export async function GET(request: NextRequest) {
       { status: 501 }
     )
   } catch (error) {
+    console.error('TTS API Error:', error)
     return NextResponse.json(
       { error: 'Gagal menghasilkan suara' },
       { status: 500 }

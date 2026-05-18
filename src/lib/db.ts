@@ -3,32 +3,24 @@ import { PrismaLibSQL } from '@prisma/adapter-libsql'
 import { createClient } from '@libsql/client'
 
 function createPrismaClient() {
-  const databaseUrl = process.env.DATABASE_URL || ''
+  // TURSO_DATABASE_URL is the real Turso/libsql URL (libsql://...)
+  // DATABASE_URL is only for Prisma schema validation (file:./dummy.db)
+  // We use SEPARATE env vars to avoid Prisma's SQLite provider
+  // rejecting the libsql:// URL format.
+  const tursoUrl = process.env.TURSO_DATABASE_URL || ''
 
-  console.log('[DB] DATABASE_URL:', databaseUrl ? databaseUrl.substring(0, 30) + '...' : 'NOT SET')
-  console.log('[DB] TURSO_AUTH_TOKEN:', process.env.TURSO_AUTH_TOKEN ? 'SET' : 'NOT SET')
-
-  // Safety check: if no DATABASE_URL, use local SQLite fallback
-  if (!databaseUrl || databaseUrl === 'undefined' || databaseUrl.trim() === '') {
-    console.warn('[DB] DATABASE_URL not set, using local SQLite (file:db/custom.db)')
-    return new PrismaClient()
+  if (tursoUrl.startsWith('libsql://') || tursoUrl.startsWith('http://') || tursoUrl.startsWith('https://')) {
+    // Production: Connect to Turso via adapter
+    const libsql = createClient({
+      url: tursoUrl,
+      authToken: process.env.TURSO_AUTH_TOKEN,
+    })
+    const adapter = new PrismaLibSQL(libsql)
+    return new PrismaClient({ adapter })
   }
 
-  // For local SQLite (file: protocol)
-  if (databaseUrl.startsWith('file:')) {
-    console.log('[DB] Using local SQLite')
-    return new PrismaClient()
-  }
-
-  // For Turso / libsql (libsql:// protocol)
-  // IMPORTANT: Do NOT pass datasources when using adapter
-  console.log('[DB] Using Turso (libsql)')
-  const libsql = createClient({
-    url: databaseUrl,
-    authToken: process.env.TURSO_AUTH_TOKEN,
-  })
-  const adapter = new PrismaLibSQL(libsql)
-  return new PrismaClient({ adapter })
+  // Local development: Use standard Prisma with SQLite
+  return new PrismaClient()
 }
 
 const globalForPrisma = globalThis as unknown as {

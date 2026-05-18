@@ -13,7 +13,6 @@ export async function POST(request: NextRequest) {
       )
     }
 
-    // Lookup by nomorRegistrasi
     const registration = await db.registration.findFirst({
       where: {
         nomorRegistrasi: {
@@ -57,24 +56,20 @@ export async function POST(request: NextRequest) {
 
     if (!registration) {
       return NextResponse.json(
-        { success: false, message: 'Pendaftaran tidak ditemukan. Pastikan nomor registrasi benar dan pendaftaran sudah diverifikasi.' },
+        { success: false, message: 'Pendaftaran tidak ditemukan.' },
         { status: 404 }
       )
     }
 
-    // Only allow printing for verified registrations
     if (registration.status !== 'diverifikasi') {
       return NextResponse.json(
-        { success: false, message: `Pendaftaran belum diverifikasi. Status saat ini: ${registration.status}` },
+        { success: false, message: `Pendaftaran belum diverifikasi. Status: ${registration.status}` },
         { status: 400 }
       )
     }
 
-    // Generate surat number (sequential per day)
     const todayStart = new Date()
     todayStart.setHours(0, 0, 0, 0)
-    const todayEnd = new Date()
-    todayEnd.setHours(23, 59, 59, 999)
 
     const todayPrintCount = await db.registration.count({
       where: {
@@ -85,7 +80,6 @@ export async function POST(request: NextRequest) {
 
     const suratNumber = `SIB-${String(todayStart.getFullYear()).slice(2)}${String(todayStart.getMonth() + 1).padStart(2, '0')}${String(todayStart.getDate()).padStart(2, '0')}-${String(todayPrintCount + 1).padStart(4, '0')}`
 
-    // Get lapas info from pengaturan (optional)
     const settings = await db.pengaturan.findMany({
       where: { key: { startsWith: 'lapas_' } },
     })

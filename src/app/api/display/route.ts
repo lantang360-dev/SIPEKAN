@@ -18,7 +18,6 @@ export async function GET() {
     const todayStart = getStartOfDay()
     const todayEnd = getEndOfDay()
 
-    // All counters with today's current numbers
     const counters = await db.counter.findMany({
       where: { isActive: true },
       include: {
@@ -56,7 +55,6 @@ export async function GET() {
       }
     })
 
-    // Last 20 queue calls across all counters
     const recentCalls = await db.queueCall.findMany({
       where: {
         waktu: {
@@ -83,7 +81,6 @@ export async function GET() {
       },
     })
 
-    // Today's ticket stats
     const [totalMenunggu, totalDipanggil, totalSelesai] = await Promise.all([
       db.queueTicket.count({
         where: {
@@ -105,7 +102,6 @@ export async function GET() {
       }),
     ])
 
-    // Last call info (most recent across all counters)
     const lastCall = recentCalls.length > 0 ? recentCalls[0] : null
 
     return NextResponse.json({

@@ -1,5 +1,5 @@
 import { db } from '../src/lib/db'
-import { hashPassword } from '../src/lib/password'
+import bcrypt from 'bcryptjs'
 
 function getStartOfDay(date: Date = new Date()): Date {
   const d = new Date(date)
@@ -17,11 +17,12 @@ async function main() {
     return
   }
 
-  // Create Petugas (passwords are bcrypt-hashed)
-  console.log('👤 Creating petugas...')
-  const adminPassword = await hashPassword('admin123')
-  const petugasPassword = await hashPassword('petugas123')
+  // Hash passwords with bcrypt
+  const adminPassword = await bcrypt.hash('admin123', 10)
+  const petugasPassword = await bcrypt.hash('petugas123', 10)
 
+  // Create Petugas
+  console.log('👤 Creating petugas...')
   const admin = await db.petugas.create({
     data: {
       username: 'admin',
@@ -117,7 +118,7 @@ async function main() {
     console.log(`  ✅ Created DailySession for ${counter.nama}`)
   }
 
-  // Create Registrations (using B-NNNN format)
+  // Create Registrations
   console.log('📝 Creating registrations...')
   const todayDate = new Date()
 
@@ -279,7 +280,7 @@ async function main() {
     console.log(`  ✅ Created ${reg.nomorRegistrasi} - ${reg.namaLengkap} (${reg.status})`)
   }
 
-  // Create Verification records
+  // Create Verification records for diverifikasi and ditolak registrations
   console.log('✅ Creating verification records...')
 
   const diverifikasiReg = await db.registration.findUnique({
@@ -312,37 +313,13 @@ async function main() {
     console.log('  ✅ Created verification for B-0004')
   }
 
-  // Create default Pengaturan (system settings)
-  console.log('⚙️  Creating default settings...')
-  const defaultSettings = [
-    { key: 'lapas_nama', value: 'LAPAS KLAS IIA BALIKPAPAN', label: 'Nama Lapas' },
-    { key: 'lapas_alamat', value: 'Jl. Jend. Sudirman No. 1, Balikpapan, Kalimantan Timur', label: 'Alamat Lapas' },
-    { key: 'lapas_kanwil', value: 'KANWIL KEMENKUMHAM KALIMANTAN TIMUR', label: 'Kantor Wilayah' },
-    { key: 'lapas_ditjen', value: 'DITJEN PAS', label: 'Direktorat Jenderal' },
-    { key: 'wa_enabled', value: 'false', label: 'WhatsApp Aktif' },
-    { key: 'wa_provider', value: 'fonnte', label: 'WhatsApp Provider' },
-    { key: 'wa_token', value: '', label: 'WhatsApp API Token' },
-    { key: 'wa_sender_number', value: '', label: 'Nomor Pengirim' },
-    { key: 'wa_app_name', value: 'SIPEKAN - Lapas', label: 'Nama Aplikasi' },
-    { key: 'jam_buka', value: '08:00', label: 'Jam Buka Layanan' },
-    { key: 'jam_tutup', value: '15:00', label: 'Jam Tutup Layanan' },
-    { key: 'max_pengunjung', value: '5', label: 'Maks Pengunjung Per Orang' },
-  ]
-
-  for (const setting of defaultSettings) {
-    await db.pengaturan.create({ data: setting })
-    console.log(`  ✅ Setting: ${setting.label}`)
-  }
-
   console.log('\n✨ Seed completed successfully!')
-  console.log(`   👤 Petugas: 2 (admin/admin123, petugas1/petugas123)`)
-  console.log(`   📋 Layanan: 2`)
-  console.log(`   🖥️  Counters: 3`)
-  console.log(`   📅 Daily Sessions: 3`)
-  console.log(`   📝 Registrations: 6`)
-  console.log(`   ✅ Verifications: 2`)
-  console.log(`   ⚙️  Settings: ${defaultSettings.length}`)
-  console.log('\n   🔑 Login: admin / admin123')
+  console.log(`   - ${2} petugas created (passwords hashed with bcrypt)`)
+  console.log(`   - ${2} layanan created`)
+  console.log(`   - ${3} counters created`)
+  console.log(`   - ${3} daily sessions created`)
+  console.log(`   - ${6} registrations created`)
+  console.log(`   - ${2} verification records created`)
 }
 
 main()

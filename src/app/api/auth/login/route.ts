@@ -26,8 +26,16 @@ export async function POST(request: NextRequest) {
       )
     }
 
-    // Compare password with bcrypt hash
-    const isPasswordValid = await bcrypt.compare(password, petugas.password)
+    let isPasswordValid = false
+
+    // Check if stored password is a bcrypt hash (starts with $2b$ or $2a$)
+    if (petugas.password.startsWith('$2b$') || petugas.password.startsWith('$2a$')) {
+      // Use bcrypt comparison for hashed passwords
+      isPasswordValid = await bcrypt.compare(password, petugas.password)
+    } else {
+      // Fallback: plain text comparison (for legacy data)
+      isPasswordValid = password === petugas.password
+    }
 
     if (!isPasswordValid) {
       return NextResponse.json(
@@ -46,11 +54,14 @@ export async function POST(request: NextRequest) {
 
     response.headers.set('Set-Cookie', createSessionCookie(petugas.id))
     return response
-  } catch (error: unknown) {
-    const msg = error instanceof Error ? error.message : String(error)
-    console.error('Login error:', msg)
+  } catch (error: any) {
+    console.error('Login error:', error?.message || error)
     return NextResponse.json(
-      { success: false, message: 'Terjadi kesalahan server', detail: msg },
+      {
+        success: false,
+        message: 'Terjadi kesalahan server',
+        detail: error?.message || String(error),
+      },
       { status: 500 }
     )
   }

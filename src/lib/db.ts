@@ -5,6 +5,15 @@ import { createClient } from "@libsql/client";
 function createPrismaClient() {
   const databaseUrl = process.env.DATABASE_URL || "";
 
+  console.log(
+    "[DB] DATABASE_URL:",
+    databaseUrl ? databaseUrl.substring(0, 30) + "..." : "NOT SET",
+  );
+  console.log(
+    "[DB] TURSO_AUTH_TOKEN:",
+    process.env.TURSO_AUTH_TOKEN ? "SET" : "NOT SET",
+  );
+
   // Safety check: if no DATABASE_URL, use local SQLite fallback
   if (
     !databaseUrl ||
@@ -25,16 +34,27 @@ function createPrismaClient() {
 
   // For local SQLite (file: protocol)
   if (databaseUrl.startsWith("file:")) {
+    console.log("[DB] Using local SQLite");
     return new PrismaClient();
   }
 
   // For Turso / libsql (libsql:// protocol)
+  // IMPORTANT: Must provide dummy datasources.db.url to prevent Prisma
+  // from reading DATABASE_URL directly (which causes "URL_INVALID: undefined")
+  console.log("[DB] Using Turso (libsql)");
   const libsql = createClient({
     url: databaseUrl,
     authToken: process.env.TURSO_AUTH_TOKEN,
   });
   const adapter = new PrismaLibSQL(libsql);
-  return new PrismaClient({ adapter });
+  return new PrismaClient({
+    adapter,
+    datasources: {
+      db: {
+        url: "file:./dummy.db",
+      },
+    },
+  });
 }
 
 const globalForPrisma = globalThis as unknown as {
